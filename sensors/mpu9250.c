@@ -506,9 +506,9 @@ void mpu9250_get_data(I2C_Handle *i2c, float *ax, float *ay, float *az, float *g
 	 int16_t nx = (int16_t)((rawData[0] << 8) | rawData[1]);
 	 int16_t ny = (int16_t)((rawData[2] << 8) | rawData[3]);
 	 int16_t nz = (int16_t)((rawData[4] << 8) | rawData[5]);
-	 int16_t mx = (int16_t)((rawData[6] << 8) | rawData[7]);
-	 int16_t my = (int16_t)((rawData[8] << 8) | rawData[9]);
-	 int16_t mz = (int16_t)((rawData[10] << 8) | rawData[11]);
+	 int16_t mx = (int16_t)((rawData[8] << 8) | rawData[9]);
+	 int16_t my = (int16_t)((rawData[10] << 8) | rawData[11]);
+	 int16_t mz = (int16_t)((rawData[12] << 8) | rawData[13]);
 	
 	// JTKJ: Convert the 16-bit register values into g 
 	//       Each nx, ny and nz below is represents the 16-bit values for each axis separately
