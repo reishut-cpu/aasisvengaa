@@ -1,5 +1,6 @@
 /* C Standard library */
 #include <stdio.h>
+#include <time.h>
 
 /* XDCtools files */
 #include <xdc/std.h>
@@ -154,19 +155,23 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
         System_printf("MPU9250: Setup and calibration OK\n");
         System_flush();
 
-    Task_sleep(100000 / Clock_tickPeriod);
+    Task_sleep(10000 / Clock_tickPeriod);
     mpu9250_setup(&i2cMPU);
-
+    int elapsedSeconds = 0;
     while (1) {
 
-        Char mpu[64];
+        Char mpu[128];
         // JTKJ: Teht�v� 2. Lue sensorilta dataa ja tulosta se Debug-ikkunaan merkkijonona
         // JTKJ: Exercise 2. Read sensor data and print it to the Debug window as string
         mpu9250_get_data(&i2cMPU, &gyro.ax, &gyro.ay, &gyro.az, &gyro.gx, &gyro.gy, &gyro.gz);
-        sprintf(mpu, "%f, %f, %f, %f, %f, %f\n", gyro.ax, gyro.ay, gyro.az, gyro.gx, gyro.gy, gyro.gz);
+        // Get current time
+
+        sprintf(mpu, "%ld, %f, %f, %f, %f, %f, %f\n", elapsedSeconds, gyro.ax, gyro.ay, gyro.az, gyro.gx, gyro.gy, gyro.gz);
         System_printf(mpu);
+        elapsedSeconds++;
         // Once per second, you can modify this
-        Task_sleep(100000 / Clock_tickPeriod);
+        Task_sleep(10000 / Clock_tickPeriod);
+
     }
 }
 
