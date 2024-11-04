@@ -158,6 +158,7 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
     Task_sleep(10000 / Clock_tickPeriod);
     mpu9250_setup(&i2cMPU);
     int elapsedSeconds = 0;
+    int tulostettu = 0;
     while (1) {
 
         Char mpu[128];
@@ -166,8 +167,17 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
         mpu9250_get_data(&i2cMPU, &gyro.ax, &gyro.ay, &gyro.az, &gyro.gx, &gyro.gy, &gyro.gz);
         // Get current time
 
-        sprintf(mpu, "%ld, %f, %f, %f, %f, %f, %f\n", elapsedSeconds, gyro.ax, gyro.ay, gyro.az, gyro.gx, gyro.gy, gyro.gz);
-        System_printf(mpu);
+        //sprintf(mpu, "%ld, %f, %f, %f, %f, %f, %f\n", elapsedSeconds, gyro.ax, gyro.ay, gyro.az, gyro.gx, gyro.gy, gyro.gz);
+        if ((gyro.ax > 0.8) && (gyro.ax <= 1.2)) {
+            if (!tulostettu) {
+            sprintf(mpu, "-\n", gyro.ax);
+            System_printf(mpu);
+            tulostettu = 1;
+            }
+        } else {
+            tulostettu = 0;
+        }
+
         elapsedSeconds++;
         // Once per second, you can modify this
         Task_sleep(10000 / Clock_tickPeriod);
