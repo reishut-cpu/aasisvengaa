@@ -158,29 +158,56 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
     Task_sleep(10000 / Clock_tickPeriod);
     mpu9250_setup(&i2cMPU);
     int elapsedSeconds = 0;
-    int tulostettu = 0;
     while (1) {
-
-        Char mpu[128];
-        // JTKJ: Teht�v� 2. Lue sensorilta dataa ja tulosta se Debug-ikkunaan merkkijonona
-        // JTKJ: Exercise 2. Read sensor data and print it to the Debug window as string
-        mpu9250_get_data(&i2cMPU, &gyro.ax, &gyro.ay, &gyro.az, &gyro.gx, &gyro.gy, &gyro.gz);
-        // Get current time
-
-        //sprintf(mpu, "%ld, %f, %f, %f, %f, %f, %f\n", elapsedSeconds, gyro.ax, gyro.ay, gyro.az, gyro.gx, gyro.gy, gyro.gz);
-        if ((gyro.ax > 0.8) && (gyro.ax <= 1.2)) {
-            if (!tulostettu) {
-            sprintf(mpu, "-\n", gyro.ax);
-            System_printf(mpu);
-            tulostettu = 1;
+            int tulostettu = 0;
+            int tulokset = 0;
+            Char mpu[128];
+            // JTKJ: Teht�v� 2. Lue sensorilta dataa ja tulosta se Debug-ikkunaan merkkijonona
+            // JTKJ: Exercise 2. Read sensor data and print it to the Debug window as string
+            mpu9250_get_data(&i2cMPU, &gyro.ax, &gyro.ay, &gyro.az, &gyro.gx, &gyro.gy, &gyro.gz);
+            // Get current time
+            if ((gyro.ax > 0.5) && (gyro.ax <= 1.2)) {
+                tulokset = 1; // Aseta tulokset 1:ksi
+            } else if ((gyro.ay > 0.5) && (gyro.ay <= 1.2)) {
+                tulokset = 2; // Aseta tulokset 2:ksi
+            } else if ((gyro.az > -0.5) && (gyro.az <= 0.2)) {
+                tulokset = 3; // Aseta tulokset 3:ksi
             }
-        } else {
-            tulostettu = 0;
-        }
 
-        elapsedSeconds++;
-        // Once per second, you can modify this
-        Task_sleep(10000 / Clock_tickPeriod);
+            // Käytä switch-lauseketta tulosten käsittelyyn
+            switch (tulokset) {
+                case 1:
+                    if (!tulostettu) {
+                        sprintf(mpu, ". %f\n", gyro.ax); // Tulosta gyro.ax
+                        System_printf(mpu);
+                        tulostettu = 1; // Merkitse tulostetuksi
+                    }
+                    break; // Poistu case 1:stä
+
+                case 2:
+                    if (!tulostettu) {
+                        sprintf(mpu, ", %f\n", gyro.ay); // Tulosta gyro.ay
+                        System_printf(mpu);
+                        tulostettu = 1; // Merkitse tulostetuksi
+                    }
+                    break; // Poistu case 2:sta
+
+                case 3:
+                    if (!tulostettu) {
+                        sprintf(mpu, "- %f\n", gyro.az); // Tulosta gyro.az
+                        System_printf(mpu);
+                        tulostettu = 1; // Merkitse tulostetuksi
+                    }
+                    break; // Poistu case 3:sta
+
+                default:
+                    // Jos mikään ehto ei täyty, voit käsitellä muita tapauksia
+                    break;
+            }
+
+            elapsedSeconds++;
+            // Once per second, you can modify this
+            Task_sleep(50000 / Clock_tickPeriod);
 
     }
 }
