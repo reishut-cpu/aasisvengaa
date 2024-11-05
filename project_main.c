@@ -1,4 +1,5 @@
 /* C Standard library */
+#include <sensors/buzzer.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -21,11 +22,21 @@
 /* Board Header files */
 #include "Board.h"
 #include "sensors/opt3001.h"
+#include "sensors/buzzer.h"
+
+/* Board */
 
 /* Task */
 #define STACKSIZE 2048
 Char sensorTaskStack[STACKSIZE];
 Char uartTaskStack[STACKSIZE];
+
+static PIN_Handle hBuzzer;
+static PIN_State sBuzzer;
+PIN_Config cBuzzer[] = {
+  Board_BUZZER | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+  PIN_TERMINATE
+};
 
 // JTKJ: Teht�v� 3. Tilakoneen esittely
 // JTKJ: Exercise 3. Definition of the state machine
@@ -40,7 +51,7 @@ typedef struct{
     float gy;
     float gz;
 } SensorData;
-SensorData gyro; // Määritellään muuttuja gyro yhteiseksi
+SensorData sensor; // Määritellään muuttuja gyro yhteiseksi
 
 void mpu9250_get_data(I2C_Handle *i2c, float *ax, float *ay, float *az, float *gx, float *gy, float *gz);
 void mpu9250_setup(I2C_Handle *i2c);
@@ -121,6 +132,18 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
     }
 }
 
+Void buzzerTaskFxn(UArg arg0, UArg arg1) {
+
+    while (1) {
+        buzzerOpen(hBuzzer);
+        buzzerSetFrequency(2000);
+        Task_sleep(50000 / Clock_tickPeriod);
+        buzzerClose();
+
+        Task_sleep(950000 / Clock_tickPeriod);
+      }
+
+}
 Void sensorTaskFxn(UArg arg0, UArg arg1) {
 
     I2C_Handle      i2cMPU;
@@ -164,46 +187,52 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
             Char mpu[128];
             // JTKJ: Teht�v� 2. Lue sensorilta dataa ja tulosta se Debug-ikkunaan merkkijonona
             // JTKJ: Exercise 2. Read sensor data and print it to the Debug window as string
-            mpu9250_get_data(&i2cMPU, &gyro.ax, &gyro.ay, &gyro.az, &gyro.gx, &gyro.gy, &gyro.gz);
+            mpu9250_get_data(&i2cMPU, &sensor.ax, &sensor.ay, &sensor.az, &sensor.gx, &sensor.gy, &sensor.gz);
             // Get current time
-            if ((gyro.ax > 0.5) && (gyro.ax <= 1.2)) {
+            /*if ((gyro.gx > -15) && (gyro.gx <= -5)) {
                 tulokset = 1; // Aseta tulokset 1:ksi
-            } else if ((gyro.ay > 0.5) && (gyro.ay <= 1.2)) {
+                sprintf(mpu, ". %f\n", gyro.gx); // Tulosta gyro.g  x
+                                       System_printf(mpu);
+                                       tulostettu = 1; // Merkitse tulostetuksi
+            } else if ((gyro.gy > -5) && (gyro.gy <= -15)) {
                 tulokset = 2; // Aseta tulokset 2:ksi
-            } else if ((gyro.az > -0.5) && (gyro.az <= 0.2)) {
+                sprintf(mpu, ", %f\n", gyro.gy); // Tulosta gyro.gy
+                                      System_printf(mpu);
+                                      tulostettu = 1; // Merkitse tulostetuksi
+            } else if (((gyro.gy > -20) && (gyro.gx < 20 )) && ((gyro.gy <= -50) && (gyro.gx <= 50 ))) {
                 tulokset = 3; // Aseta tulokset 3:ksi
+                sprintf(mpu, "- %f\n", gyro.gz); // Tulosta gyro.gz
+                                      System_printf(mpu);
+                                      tulostettu = 1; // Merkitse tulostetuksi
+            }*/
+            if (sensor.ax > 0.5)
+            {
+                System_printf(". \n");
+                System_flush();
+                buzzerOpen(hBuzzer);
+                buzzerSetFrequency(2000);
+                Task_sleep(350000 / Clock_tickPeriod); // 100ms
+                buzzerClose();
+            }
+            else if (sensor.ay > 0.5) {
+                System_printf("- \n");
+                System_flush();
+                buzzerOpen(hBuzzer);
+                buzzerSetFrequency(2000);
+                Task_sleep(500000 / Clock_tickPeriod); // 100ms
+                buzzerClose();
+            }
+            else if (sensor.az > -0.5)
+            {
+                System_printf("VELI \n");
+                System_flush();
+                Task_sleep(300000 / Clock_tickPeriod); // 100ms
+
+            } else {
+                Task_sleep(100000 / Clock_tickPeriod); // 100ms
             }
 
             // Käytä switch-lauseketta tulosten käsittelyyn
-            switch (tulokset) {
-                case 1:
-                    if (!tulostettu) {
-                        sprintf(mpu, ". %f\n", gyro.ax); // Tulosta gyro.ax
-                        System_printf(mpu);
-                        tulostettu = 1; // Merkitse tulostetuksi
-                    }
-                    break; // Poistu case 1:stä
-
-                case 2:
-                    if (!tulostettu) {
-                        sprintf(mpu, ", %f\n", gyro.ay); // Tulosta gyro.ay
-                        System_printf(mpu);
-                        tulostettu = 1; // Merkitse tulostetuksi
-                    }
-                    break; // Poistu case 2:sta
-
-                case 3:
-                    if (!tulostettu) {
-                        sprintf(mpu, "- %f\n", gyro.az); // Tulosta gyro.az
-                        System_printf(mpu);
-                        tulostettu = 1; // Merkitse tulostetuksi
-                    }
-                    break; // Poistu case 3:sta
-
-                default:
-                    // Jos mikään ehto ei täyty, voit käsitellä muita tapauksia
-                    break;
-            }
 
             elapsedSeconds++;
             // Once per second, you can modify this
