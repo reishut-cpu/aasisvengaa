@@ -130,14 +130,8 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
         // JTKJ: Teht�v� 4. L�het� sama merkkijono UARTilla
         // JTKJ: Exercise 4. Send the same sensor data string with UART
 
-        // Just for sanity check for exercise, you can comment this out
-        if (programState == DATA_READY) {
-                  char tulos[20];
-                  sprintf(tulos, "UartTaskData: %.2f\n\r", sensor.ax);
-                  UART_write(uart, tulos, strlen(tulos));
-                  System_printf(tulos);
-                  programState = WAITING;
-              }
+
+
         /*System_printf("uartTask\n");
         System_flush();*/
 
