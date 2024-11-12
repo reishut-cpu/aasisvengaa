@@ -38,6 +38,13 @@ PIN_Config cBuzzer[] = {
   PIN_TERMINATE
 };
 
+UART_Handle uart;
+// Uart funktio
+void sendToUART(const char* data) {
+    UART_write(uart, data, strlen(data));
+    Task_sleep(100000 / Clock_tickPeriod);
+}
+
 // JTKJ: Teht�v� 3. Tilakoneen esittely
 // JTKJ: Exercise 3. Definition of the state machine
 enum state { WAITING=1, DATA_READY };
@@ -94,7 +101,7 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
 
     // JTKJ: Teht�v� 4. Lis�� UARTin alustus: 9600,8n1
     // JTKJ: Exercise 4. Setup here UART connection as 9600,8n1
-      UART_Handle uart;
+
       UART_Params uartParams;
 
     //Initialize serial communication
@@ -124,6 +131,13 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
         // JTKJ: Exercise 4. Send the same sensor data string with UART
 
         // Just for sanity check for exercise, you can comment this out
+        if (programState == DATA_READY) {
+                  char tulos[20];
+                  sprintf(tulos, "UartTaskData: %.2f\n\r", sensor.ax);
+                  UART_write(uart, tulos, strlen(tulos));
+                  System_printf(tulos);
+                  programState = WAITING;
+              }
         /*System_printf("uartTask\n");
         System_flush();*/
 
@@ -207,32 +221,31 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
             }*/
             if (sensor.ax > 0.5)
             {
-                System_printf(". \n");
+                System_printf(".\r\n\0");
                 System_flush();
                 buzzerOpen(hBuzzer);
                 buzzerSetFrequency(2000);
-                Task_sleep(350000 / Clock_tickPeriod); // 100ms
+                Task_sleep(150000 / Clock_tickPeriod); // 150ms
                 buzzerClose();
             }
             else if (sensor.ay > 0.5) {
-                System_printf("- \n");
+                System_printf("-\r\n\0");
                 System_flush();
                 buzzerOpen(hBuzzer);
                 buzzerSetFrequency(2000);
-                Task_sleep(500000 / Clock_tickPeriod); // 100ms
+                Task_sleep(500000 / Clock_tickPeriod); // 500ms
                 buzzerClose();
             }
             else if (sensor.az > -0.5)
             {
-                System_printf("VELI \n");
+                System_printf("VELI\r\n\0");
                 System_flush();
-                Task_sleep(300000 / Clock_tickPeriod); // 100ms
+                Task_sleep(300000 / Clock_tickPeriod); // 300ms
 
             } else {
                 Task_sleep(100000 / Clock_tickPeriod); // 100ms
             }
 
-            // Käytä switch-lauseketta tulosten käsittelyyn
 
             elapsedSeconds++;
             // Once per second, you can modify this
