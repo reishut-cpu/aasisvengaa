@@ -37,13 +37,14 @@ PIN_Config cBuzzer[] = {
   Board_BUZZER | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
   PIN_TERMINATE
 };
+char tulos[128];
+int tulos_laskin = 0;
 
-UART_Handle uart;
 // Uart funktio
-void sendToUART(const char* data) {
+/*void sendToUART(const char* data) {
     UART_write(uart, data, strlen(data));
     Task_sleep(100000 / Clock_tickPeriod);
-}
+}*/
 
 // JTKJ: Teht�v� 3. Tilakoneen esittely
 // JTKJ: Exercise 3. Definition of the state machine
@@ -102,6 +103,7 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
     // JTKJ: Teht�v� 4. Lis�� UARTin alustus: 9600,8n1
     // JTKJ: Exercise 4. Setup here UART connection as 9600,8n1
 
+      UART_Handle uart;
       UART_Params uartParams;
 
     //Initialize serial communication
@@ -122,15 +124,11 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
 
     while (1) {
 
-        // JTKJ: Teht�v� 3. Kun tila on oikea, tulosta sensoridata merkkijonossa debug-ikkunaan
-        //       Muista tilamuutos
-        // JTKJ: Exercise 3. Print out sensor data as string to debug window if the state is correct
-        //       Remember to modify state
-
-        // JTKJ: Teht�v� 4. L�het� sama merkkijono UARTilla
-        // JTKJ: Exercise 4. Send the same sensor data string with UART
-
-
+        if (programState == DATA_READY) {
+                   tulos_laskin = 0;
+                   UART_write(uart, tulos, strlen(tulos));
+                   programState = WAITING;
+               }
 
         /*System_printf("uartTask\n");
         System_flush();*/
@@ -188,60 +186,52 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
 
     Task_sleep(10000 / Clock_tickPeriod);
     mpu9250_setup(&i2cMPU);
-    int elapsedSeconds = 0;
+
     while (1) {
-            int tulostettu = 0;
-            int tulokset = 0;
-            Char mpu[128];
+            // Char mpu[128];
             // JTKJ: Teht�v� 2. Lue sensorilta dataa ja tulosta se Debug-ikkunaan merkkijonona
             // JTKJ: Exercise 2. Read sensor data and print it to the Debug window as string
             mpu9250_get_data(&i2cMPU, &sensor.ax, &sensor.ay, &sensor.az, &sensor.gx, &sensor.gy, &sensor.gz);
-            // Get current time
-            /*if ((gyro.gx > -15) && (gyro.gx <= -5)) {
-                tulokset = 1; // Aseta tulokset 1:ksi
-                sprintf(mpu, ". %f\n", gyro.gx); // Tulosta gyro.g  x
-                                       System_printf(mpu);
-                                       tulostettu = 1; // Merkitse tulostetuksi
-            } else if ((gyro.gy > -5) && (gyro.gy <= -15)) {
-                tulokset = 2; // Aseta tulokset 2:ksi
-                sprintf(mpu, ", %f\n", gyro.gy); // Tulosta gyro.gy
-                                      System_printf(mpu);
-                                      tulostettu = 1; // Merkitse tulostetuksi
-            } else if (((gyro.gy > -20) && (gyro.gx < 20 )) && ((gyro.gy <= -50) && (gyro.gx <= 50 ))) {
-                tulokset = 3; // Aseta tulokset 3:ksi
-                sprintf(mpu, "- %f\n", gyro.gz); // Tulosta gyro.gz
-                                      System_printf(mpu);
-                                      tulostettu = 1; // Merkitse tulostetuksi
-            }*/
+            if (programState == WAITING) {
             if (sensor.ax > 0.5)
             {
                 System_printf(".\r\n\0");
+                tulos[tulos_laskin] = '.';
                 System_flush();
                 buzzerOpen(hBuzzer);
                 buzzerSetFrequency(2000);
                 Task_sleep(150000 / Clock_tickPeriod); // 150ms
                 buzzerClose();
+                Task_sleep(250000 / Clock_tickPeriod); // 250ms
+                tulos_laskin++;
+                programState = DATA_READY;
             }
             else if (sensor.ay > 0.5) {
                 System_printf("-\r\n\0");
+                tulos[tulos_laskin]='-';
                 System_flush();
                 buzzerOpen(hBuzzer);
                 buzzerSetFrequency(2000);
                 Task_sleep(500000 / Clock_tickPeriod); // 500ms
                 buzzerClose();
+                tulos_laskin++;
+                programState = DATA_READY;
             }
             else if (sensor.az > -0.5)
             {
                 System_printf("VELI\r\n\0");
+                tulos[tulos_laskin]=' ';
                 System_flush();
                 Task_sleep(300000 / Clock_tickPeriod); // 300ms
+                tulos_laskin++;
+                programState = DATA_READY;
 
             } else {
                 Task_sleep(100000 / Clock_tickPeriod); // 100ms
             }
 
 
-            elapsedSeconds++;
+            }
             // Once per second, you can modify this
             Task_sleep(50000 / Clock_tickPeriod);
 
