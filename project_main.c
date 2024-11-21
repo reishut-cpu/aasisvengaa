@@ -2,6 +2,7 @@
 #include <sensors/buzzer.h>
 #include <stdio.h>
 #include <time.h>
+#include <string.h>
 
 /* XDCtools files */
 #include <xdc/std.h>
@@ -31,20 +32,25 @@
 Char sensorTaskStack[STACKSIZE];
 Char uartTaskStack[STACKSIZE];
 
+/* Buzzer config */
 static PIN_Handle hBuzzer;
 static PIN_State sBuzzer;
 PIN_Config cBuzzer[] = {
   Board_BUZZER | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
   PIN_TERMINATE
 };
-char tulos[128];
-int tulos_laskin = 0;
 
-// Uart funktio
-/*void sendToUART(const char* data) {
-    UART_write(uart, data, strlen(data));
+// Define global variables for UART task
+char tulos[5];
+int UART_ID = 0;
+UART_Handle uart;
+
+// UART Function
+void SendToUART(const char* data) {
+    sprintf(tulos, "%s\r\n\0", data);
+    UART_write(uart, tulos, strlen(tulos));
     Task_sleep(100000 / Clock_tickPeriod);
-}*/
+}
 
 // JTKJ: Teht�v� 3. Tilakoneen esittely
 // JTKJ: Exercise 3. Definition of the state machine
@@ -103,7 +109,6 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
     // JTKJ: Teht�v� 4. Lis�� UARTin alustus: 9600,8n1
     // JTKJ: Exercise 4. Setup here UART connection as 9600,8n1
 
-      UART_Handle uart;
       UART_Params uartParams;
 
     //Initialize serial communication
@@ -125,8 +130,20 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
     while (1) {
 
         if (programState == DATA_READY) {
-                   tulos_laskin = 0;
-                   UART_write(uart, tulos, strlen(tulos));
+                   switch(UART_ID) {
+                   case 1: // ID for x-axis
+                       SendToUART(".");
+                       UART_ID = 0;
+                       break;
+                   case 2: // ID for Y-axis
+                       SendToUART("-");
+                       UART_ID = 0;
+                       break;
+                   case 3: // ID for Z-axis
+                       SendToUART(" ");
+                       UART_ID = 0;
+                       break;
+                   }
                    programState = WAITING;
                }
 
@@ -169,7 +186,7 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
        System_printf("MPU9250: Power ON\n");
        System_flush();
 
-    // Avataan yhteys
+    // Open I2C connection
     i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
     if (i2cMPU == NULL) {
         System_abort("Error Initializing I2C\n");
@@ -184,49 +201,57 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
         System_printf("MPU9250: Setup and calibration OK\n");
         System_flush();
 
-    Task_sleep(10000 / Clock_tickPeriod);
-    mpu9250_setup(&i2cMPU);
+        Task_sleep(10000 / Clock_tickPeriod);
 
-    while (1) {
-            // Char mpu[128];
-            // JTKJ: Teht�v� 2. Lue sensorilta dataa ja tulosta se Debug-ikkunaan merkkijonona
-            // JTKJ: Exercise 2. Read sensor data and print it to the Debug window as string
+        while (1) {
+            // Function below is responsible for reading the data from sensor data
             mpu9250_get_data(&i2cMPU, &sensor.ax, &sensor.ay, &sensor.az, &sensor.gx, &sensor.gy, &sensor.gz);
+            // Keep reading data, until one of the determined sensors exceed the threshold
             if (programState == WAITING) {
-            if (sensor.ax > 0.5)
-            {
+            // Below are required thresholds for different movenents on set axises. They are responsible for setting different ID's for UART to print
+            if (sensor.ax > 0.5) { // When X-axis exceeds this threshold, goes to the below functions
                 System_printf(".\r\n\0");
-                tulos[tulos_laskin] = '.';
+                UART_ID = 1; // Set identifier for UART Task
                 System_flush();
                 buzzerOpen(hBuzzer);
                 buzzerSetFrequency(2000);
                 Task_sleep(150000 / Clock_tickPeriod); // 150ms
                 buzzerClose();
                 Task_sleep(250000 / Clock_tickPeriod); // 250ms
-                tulos_laskin++;
                 programState = DATA_READY;
-            }
-            else if (sensor.ay > 0.5) {
+
+            } else if (sensor.ay > 0.5) { // When Y-axis exceeds this threshold, goes to the below functions
                 System_printf("-\r\n\0");
-                tulos[tulos_laskin]='-';
+                UART_ID = 2; // Set identifier for UART Task
                 System_flush();
                 buzzerOpen(hBuzzer);
                 buzzerSetFrequency(2000);
                 Task_sleep(500000 / Clock_tickPeriod); // 500ms
                 buzzerClose();
-                tulos_laskin++;
-                programState = DATA_READY;
-            }
-            else if (sensor.az > -0.5)
-            {
-                System_printf("VELI\r\n\0");
-                tulos[tulos_laskin]=' ';
-                System_flush();
-                Task_sleep(300000 / Clock_tickPeriod); // 300ms
-                tulos_laskin++;
                 programState = DATA_READY;
 
-            } else {
+            } else if (sensor.az > -0.5) { // When Z-axis exceeds this threshold, goes to the below functions
+                System_printf("VELI\r\n\0");
+                UART_ID = 3; // Set identifier for UART Task
+                System_flush();
+                buzzerOpen(hBuzzer);
+                buzzerSetFrequency(2000);
+                Task_sleep(20000 / Clock_tickPeriod); // 20ms
+                buzzerClose();
+                Task_sleep(280000 / Clock_tickPeriod); // 280ms
+                programState = DATA_READY;
+
+            // Below are thresholds for handling error data. For example, the SensorTag is in a wrong position according to acceleration
+            } else if (sensor.ax > 1.0) {
+                Task_sleep(100000 / Clock_tickPeriod); // 100ms
+
+            } else if (sensor.ay > 1.0) {
+                Task_sleep(100000 / Clock_tickPeriod); // 100ms
+
+            } else if (sensor.az > 1.0) {
+                Task_sleep(100000 / Clock_tickPeriod); // 100ms
+
+            } else { // Default sleep, when no matching criteria are met
                 Task_sleep(100000 / Clock_tickPeriod); // 100ms
             }
 
