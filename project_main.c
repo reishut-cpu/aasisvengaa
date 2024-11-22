@@ -41,16 +41,7 @@ PIN_Config cBuzzer[] = {
 };
 
 // Define global variables for UART task
-char tulos[5];
 int UART_ID = 0;
-UART_Handle uart;
-
-// UART Function
-void SendToUART(const char* data) {
-    sprintf(tulos, "%s\r\n\0", data);
-    UART_write(uart, tulos, strlen(tulos));
-    Task_sleep(100000 / Clock_tickPeriod);
-}
 
 // JTKJ: Teht�v� 3. Tilakoneen esittely
 // JTKJ: Exercise 3. Definition of the state machine
@@ -109,6 +100,7 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
     // JTKJ: Teht�v� 4. Lis�� UARTin alustus: 9600,8n1
     // JTKJ: Exercise 4. Setup here UART connection as 9600,8n1
 
+      UART_Handle uart;
       UART_Params uartParams;
 
     //Initialize serial communication
@@ -116,7 +108,7 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
       uartParams.writeDataMode = UART_DATA_TEXT;
       uartParams.readDataMode = UART_DATA_TEXT;
       uartParams.readEcho = UART_ECHO_OFF;
-      uartParams.readMode=UART_MODE_BLOCKING;
+      uartParams.readMode = UART_MODE_BLOCKING;
       uartParams.baudRate = 9600; // nopeus 9600baud
       uartParams.dataLength = UART_LEN_8; // 8
       uartParams.parityType = UART_PAR_NONE; // n
@@ -128,19 +120,18 @@ Void uartTaskFxn(UArg arg0, UArg arg1) {
          }
 
     while (1) {
-
         if (programState == DATA_READY) {
                    switch(UART_ID) {
                    case 1: // ID for x-axis
-                       SendToUART(".");
+                       UART_write(uart, ".\r\n\0", 4);
                        UART_ID = 0;
                        break;
                    case 2: // ID for Y-axis
-                       SendToUART("-");
+                       UART_write(uart, "-\r\n\0", 4);
                        UART_ID = 0;
                        break;
                    case 3: // ID for Z-axis
-                       SendToUART(" ");
+                       UART_write(uart, " \r\n\0", 4);
                        UART_ID = 0;
                        break;
                    }
@@ -210,7 +201,7 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
             if (programState == WAITING) {
             // Below are required thresholds for different movenents on set axises. They are responsible for setting different ID's for UART to print
             if (sensor.ax > 0.5) { // When X-axis exceeds this threshold, goes to the below functions
-                System_printf(".\r\n\0");
+                //System_printf(".\r\n\0");
                 UART_ID = 1; // Set identifier for UART Task
                 System_flush();
                 buzzerOpen(hBuzzer);
@@ -221,7 +212,7 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
                 programState = DATA_READY;
 
             } else if (sensor.ay > 0.5) { // When Y-axis exceeds this threshold, goes to the below functions
-                System_printf("-\r\n\0");
+                //System_printf("-\r\n\0");
                 UART_ID = 2; // Set identifier for UART Task
                 System_flush();
                 buzzerOpen(hBuzzer);
@@ -231,7 +222,7 @@ Void sensorTaskFxn(UArg arg0, UArg arg1) {
                 programState = DATA_READY;
 
             } else if (sensor.az > -0.5) { // When Z-axis exceeds this threshold, goes to the below functions
-                System_printf("VELI\r\n\0");
+                //System_printf("VELI\r\n\0");
                 UART_ID = 3; // Set identifier for UART Task
                 System_flush();
                 buzzerOpen(hBuzzer);
