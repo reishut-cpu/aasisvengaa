@@ -82,7 +82,7 @@ typedef struct{
     float gy;
     float gz;
 } SensorData;
-SensorData sensor; // Määritellään muuttuja gyro yhteiseksi
+SensorData sensor;
 
 //Prototypes
 void mpu9250_get_data(I2C_Handle *i2c, float *ax, float *ay, float *az, float *gx, float *gy, float *gz);
